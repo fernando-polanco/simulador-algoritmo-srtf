@@ -5,17 +5,17 @@ package mx.uady.simulador.models;
  */
 public class Process {
     private final String name;
-    private final int arrivalTime;
-    private final int burstTime;
-    private int remainingBurst;
-    private int turnaroundTime;
+    private final int arrivalTime; // Tiempo de llegada del proceso a la cola de espera
+    private final int burstTime; // Tiempo de ráfaga en la CPU
+    private int remainingBurst; // Tiempo de ráfaga restante en la CPU
+    private double turnaroundTime; // Tiempo del proceso en ser completado
     private ProcessState state;
 
     public Process(String name, int arrivalTime, int burstTime) {
         this.name = name;
         this.arrivalTime = arrivalTime;
         this.burstTime = burstTime;
-        this.remainingBurst = burstTime; // Un proceso recién creado tiene un tiempo de ráfaga restante es igual al tiempo de ráfaga total.
+        this.remainingBurst = burstTime; // Un proceso recién creado tiene un tiempo de ráfaga restante igual al tiempo de ráfaga total.
         this.turnaroundTime = 0;
         this.state = ProcessState.WAITING;
     }
@@ -32,7 +32,7 @@ public class Process {
     public int getRemainingBurst() {
         return remainingBurst;
     }
-    public int getTurnaroundTime() {
+    public double getTurnaroundTime() {
         return turnaroundTime;
     }
     public ProcessState getState() {
@@ -52,7 +52,7 @@ public class Process {
      * Calcula las unidades de tiempo total que transcurre desde que un proceso llega al sistema hasta que termina su ejecución por completo.
      * @param finishTime El tiempo en el que el proceso termina su ejecución por completo.
      */
-    public void calculateTurnaroundTime(int finishTime) {
+    public void calculateTurnaroundTime(double finishTime) {
         this.turnaroundTime = finishTime - this.arrivalTime;
     }
 

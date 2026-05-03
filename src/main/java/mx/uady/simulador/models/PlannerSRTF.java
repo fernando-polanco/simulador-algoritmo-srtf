@@ -11,15 +11,15 @@ import java.util.List;
 public class PlannerSRTF {
     private final static double CONTEXT_CHANGE_TIME = 0.2;
     private final List<Process> processes;
-    private Process currentProcess;
-    private int currentTime;
+    private Process cpuProcess;
+    private double currentTime;
 
     /**
      * Constructor que crea un ArrayList vacío de procesos.
      */
     public PlannerSRTF() {
         processes = new ArrayList<>();
-        currentProcess = null;
+        cpuProcess = null;
         currentTime = 0;
     }
 
@@ -29,17 +29,17 @@ public class PlannerSRTF {
      */
     public PlannerSRTF(List<Process> processes) {
         this.processes = processes;
-        currentProcess = null;
+        cpuProcess = null;
         currentTime = 0;
     }
 
     public List<Process> getProcesses() {
         return processes;
     }
-    public Process getCurrentProcess() {
-        return currentProcess;
+    public Process getCpuProcess() {
+        return cpuProcess;
     }
-    public int getCurrentTime() {
+    public double getCurrentTime() {
         return currentTime;
     }
 
@@ -48,35 +48,20 @@ public class PlannerSRTF {
      * Si el proceso actual cambia, se simula un tiempo de cambio de contexto.
      */
     public void advanceTime() {
-        // Avanza el tiempo en una unidad
+        // avanza el tiempo en una unidad
         this.currentTime++;
-        // Si el proceso actual no es nulo, se decrementa su tiempo de ráfaga restante
-        if (currentProcess != null) {
-            currentProcess.decreaseRemainingBurst();
-            if (currentProcess.getRemainingBurst() == 0) {
-                currentProcess.updateState(ProcessState.FINISHED);
-                currentProcess.calculateTurnaroundTime(currentTime);
-                currentProcess = null; // Libera la CPU al terminar la ejecución del proceso actual
-            }
+        // guarda referencia al proceso que actualmente ocupa a la CPU
+        Process previousProcess = cpuProcess;
+        // actualiza el proceso actualmente en la CPU (decrementa ráfaga, finaliza si corresponde)
+        updateCpuProcess(cpuProcess);
+        // selecciona y asigna el siguiente proceso a la CPU si corresponde
+        Process nextProcess = selectNextProcess();
+        // agrega el tiempo de cambio de contexto si el proceso actual cambia a uno diferente (y el actual no ha terminado)
+        if (previousProcess != null && nextProcess != null && previousProcess != nextProcess) {
+            this.currentTime += CONTEXT_CHANGE_TIME; // simula el tiempo de cambio de contexto al cambiar de proceso en la CPU
         }
-
-        // Filtra los procesos que ya han llegado el sistema y que no han terminado su ejecución por completo,
-        // y selecciona al proceso con menor tiempo de ráfaga restante.
-        Process nextProcess = processes.stream()
-                .filter(p -> p.getArrivalTime() <= currentTime && p.getState() != ProcessState.FINISHED)
-                .min(Comparator.comparingInt(Process::getRemainingBurst))
-                .orElse(null);
-
-        if (nextProcess != null) {
-            // Si el proceso que va a entrar a la CPU es diferente al actual
-            if (currentProcess != null && currentProcess != nextProcess && currentProcess.getState() != ProcessState.FINISHED) {
-                currentProcess.updateState(ProcessState.WAITING); // El proceso actual pasa ha estado de espera
-            }
-            currentProcess = nextProcess; // Se asigna el proceso con menor tiempo de ráfaga restante a la CPU
-            if (currentProcess.getState() != ProcessState.RUNNING) {
-                currentProcess.updateState(ProcessState.RUNNING); // El proceso que entra a la CPU pasa ha estado de ejecución
-            }
-        }
+        // asigna el nuevo proceso a la CPU
+        assignCpuProcess(nextProcess);
     }
 
     /**
@@ -84,7 +69,7 @@ public class PlannerSRTF {
      * @return {@code true} si todos los procesos han terminado su ejecución por completo, {@code false} en caso contrario.
      */
     public boolean isFinished() {
-        // Evalúa si todos los procesos cumplen la condición de haber terminado su ejecución por completo.
+        // evalúa si todos los procesos cumplen la condición de haber terminado su ejecución por completo.
         return processes.stream().allMatch(p -> p.getState() == ProcessState.FINISHED);
     }
 
@@ -95,6 +80,62 @@ public class PlannerSRTF {
     public void addProcess(Process process) {
         processes.add(process);
     }
+
+    /**
+     * Actualiza el proceso actualmente asignado a la CPU:
+     * <ul>
+     *   <li>Decrementa su tiempo de ráfaga restante.</li>
+     *   <li>Si termina su ráfaga, actualiza su estado a FINISHED, calcula turnaroundTime y libera la CPU.</li>
+     * </ul>
+     * @param process El proceso actualmente en la CPU (puede ser null).
+     */
+    private void updateCpuProcess(Process process) {
+        if (process != null) {
+            process.decreaseRemainingBurst();
+            if (process.getRemainingBurst() == 0) {
+                process.updateState(ProcessState.FINISHED);
+                process.calculateTurnaroundTime(currentTime);
+                cpuProcess = null; // libera la CPU al terminar la ejecución del proceso actual
+            }
+        }
+    }
+
+    /**
+     * Filtra la lista de procesos listos para ser asignados a la CPU y selecciona el proceso con el menor tiempo restante de ráfaga.
+     * @return El proceso con menor tiempo de ráfaga restante, o {@code null} si no hay procesos listos para ser asignados a la CPU.
+     */
+    private Process selectNextProcess() {
+        // selecciona el proceso listo con menor tiempo de ráfaga restante
+        return processes.stream()
+                .filter(p -> p.getArrivalTime() <= currentTime && p.getState() != ProcessState.FINISHED)
+                .min(Comparator.comparingInt(Process::getRemainingBurst))
+                .orElse(null);
+    }
+
+
+    /**
+     * Asigna el proceso seleccionado a la CPU y actualiza los estados:
+     * <ul>
+     *   <li>Si el proceso que va a entrar es diferente al actual y el actual no ha terminado, lo pone en WAITING.</li>
+     *   <li>Asigna el nuevo proceso a la CPU y lo pone en RUNNING si no lo está.</li>
+     * </ul>
+     * @param process El proceso seleccionado para entrar a la CPU (puede ser null).
+     */
+    private void assignCpuProcess(Process process) {
+        if (process != null) {
+            // se añade una capa de seguridad al verificar si el proceso no está terminado antes de cambiar su estado
+            // para evitar cambiar el estado de un proceso terminado
+            if (cpuProcess != null && cpuProcess != process && cpuProcess.getState() != ProcessState.FINISHED) {
+                cpuProcess.updateState(ProcessState.WAITING); // el proceso actual pasa ha estado de espera
+            }
+            cpuProcess = process; // asigna el proceso con menor tiempo de ráfaga restante a la CPU
+            if (cpuProcess.getState() != ProcessState.RUNNING) {
+                cpuProcess.updateState(ProcessState.RUNNING); // el proceso que entra a la CPU pasa ha estado de ejecución
+            }
+        }
+    }
+
+
 
 
 }
