@@ -1,23 +1,23 @@
 package mx.uady.simulador.models;
 
 /**
- * Representa un proceso en el simulador SRTF. Contiene los datos de entrada (llegada, ráfaga)
- * como los resultados calculados (espera, retorno).
+ * Representa un proceso en memoria listo para ser asignado a la CPU.
  */
 public class Process {
     private final String name;
     private final int arrivalTime;
     private final int burstTime;
-    private int remainingTime;
-    private int waitingTime;
+    private int remainingBurst;
     private int turnaroundTime;
-    private int completionTime;
+    private ProcessState state;
 
     public Process(String name, int arrivalTime, int burstTime) {
         this.name = name;
         this.arrivalTime = arrivalTime;
         this.burstTime = burstTime;
-        this.remainingTime = burstTime; // Al iniciar un proceso, restante = ráfaga total
+        this.remainingBurst = burstTime; // Un proceso recién creado tiene un tiempo de ráfaga restante es igual al tiempo de ráfaga total.
+        this.turnaroundTime = 0;
+        this.state = ProcessState.WAITING;
     }
 
     public String getName() {
@@ -29,37 +29,38 @@ public class Process {
     public int getBurstTime() {
         return burstTime;
     }
-    public int getRemainingTime() {
-        return remainingTime;
-    }
-    public void setRemainingTime(int remainingTime) {
-        this.remainingTime = remainingTime;
-    }
-    public int getWaitingTime() {
-        return waitingTime;
-    }
-    public void setWaitingTime(int waitingTime) {
-        this.waitingTime = waitingTime;
+    public int getRemainingBurst() {
+        return remainingBurst;
     }
     public int getTurnaroundTime() {
         return turnaroundTime;
     }
-    public void setTurnaroundTime(int turnaroundTime) {
-        this.turnaroundTime = turnaroundTime;
-    }
-    public int getCompletionTime() {
-        return completionTime;
-    }
-    public void setCompletionTime(int completionTime) {
-        this.completionTime = completionTime;
+    public ProcessState getState() {
+        return state;
     }
 
-    public void subtractUnitOfTime() {
-        this.remainingTime--;
+    /**
+     * Decrementa en una unidad de tiempo al tiempo de ráfaga restante del proceso en la CPU, siempre que este sea mayor a cero.
+     */
+    public void decreaseRemainingBurst() {
+        if (remainingBurst > 0) {
+            remainingBurst--;
+        }
     }
 
-    @Override
-    public String toString() {
-        return name + "[llegada= " + arrivalTime + ",rafaga=" + burstTime + "]";
+    /**
+     * Calcula las unidades de tiempo total que transcurre desde que un proceso llega al sistema hasta que termina su ejecución por completo.
+     * @param finishTime El tiempo en el que el proceso termina su ejecución por completo.
+     */
+    public void calculateTurnaroundTime(int finishTime) {
+        this.turnaroundTime = finishTime - this.arrivalTime;
+    }
+
+    /**
+     * Actualiza el estado del proceso.
+     * @param state El nuevo estado del proceso ({@code WAITING}, {@code RUNNING}, {@code FINISHED}).
+     */
+    public void updateState(ProcessState state) {
+        this.state = state;
     }
 }
