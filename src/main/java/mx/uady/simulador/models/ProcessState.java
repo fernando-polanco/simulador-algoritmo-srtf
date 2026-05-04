@@ -5,6 +5,7 @@ package mx.uady.simulador.models;
  * de procesos listos para ser atendidos.
  */
 public enum ProcessState {
+    NOT_ARRIVED,
     WAITING,
     RUNNING,
     FINISHED,
