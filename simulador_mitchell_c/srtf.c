@@ -33,12 +33,17 @@ void nuevo_proceso_activo(struct proceso *procesos, int tiempo, struct proceso *
 void proceso_Actual(int *num_procesos_activados, struct proceso **procesos_activos, int *raf_menor, struct proceso **proceso_actual);
 void resta_rafaga(struct proceso **proceso_actual);
 void salida(struct proceso **procesos_activos, int *num_procesos_activados, int *num_procesos_finalizados);
+void indice_gantt(int *tam_gantt, int **gantt, struct proceso *proceso_actual, struct proceso *procesos);
+void imprimir_gantt(int tiempo, int tam_gantt, int *gantt);
 
 int main () {
     bool continuar = true;
     int tiempo = 0;
     int num_procesos_activados = 0;
     struct proceso *proceso_actual = NULL;
+
+    int *gantt = NULL;
+    int tam_gantt = 0;
 
     //Arreglo de procesos activos.
     struct proceso *procesos_activos[NUM_PROCESOS] = {NULL};
@@ -48,11 +53,9 @@ int main () {
     iniciar_tabla(procesos);
     dibujar_tabla(procesos);
     
-    //Siguiente tiempo.
     printf("\n- Presione enter para proceder al siguiente instante.");
     getchar();
 
-    //Mientras variable de control que detecte cuando todos los procesos finalicen.
     while (continuar == true) {
         int raf_menor = 10000;
         int num_procesos_finalizados = 0;
@@ -60,16 +63,8 @@ int main () {
 
         nuevo_proceso_activo(procesos, tiempo, procesos_activos, &num_procesos_activados);
         proceso_Actual(&num_procesos_activados, procesos_activos, &raf_menor, &proceso_actual);
-
-        if (proceso_actual != NULL) {
-            int indice = 0;
-            while(&procesos[indice] != proceso_actual) {
-                indice++;
-            }
-            printf("| P%d ", indice + 1);
-        } else {
-            printf("| -- ");
-        }
+        indice_gantt(&tam_gantt, &gantt, proceso_actual,procesos);
+        imprimir_gantt(tiempo, tam_gantt, gantt);
 
         resta_rafaga(&proceso_actual);
 
@@ -83,6 +78,10 @@ int main () {
             getchar();
         }
     }
+
+    printf("\n\nSimulacion finalizada.\n");
+    free(gantt);
+    return 0;
 }
 
 void iniciar_tabla(struct proceso *procesos) {
@@ -162,4 +161,36 @@ void salida(struct proceso **procesos_activos, int *num_procesos_activados, int 
             (*num_procesos_finalizados)++;
         }
     }
+}
+
+void indice_gantt(int *tam_gantt, int **gantt, struct proceso *proceso_actual, struct proceso *procesos) {
+    (*tam_gantt)++;
+    *gantt = (int *)realloc(*gantt, (*tam_gantt) * sizeof(int));
+        
+    if (proceso_actual != NULL) {
+        int indice = 0;
+        //Encontrar indice de proceso actual.
+        while(&procesos[indice] != proceso_actual) {
+            indice++;
+        }
+        //Guardar indice.
+        (*gantt)[(*tam_gantt) - 1] = indice + 1;
+    } else {
+        //Esto no va a pasar en el ejemplo.
+        (*gantt)[(*tam_gantt) - 1] = -1;
+    }
+}
+
+void imprimir_gantt(int tiempo, int tam_gantt, int *gantt) {
+    if (gantt == NULL) return;
+
+    printf("\nInstante %d: ", tiempo);
+    for (int i = 0; i < tam_gantt; i++) {
+        if (gantt[i] != -1) {
+            printf("| P%d ", gantt[i]);
+        } else {
+            printf("| -- ");
+        }
+    }
+    printf("|");
 }
