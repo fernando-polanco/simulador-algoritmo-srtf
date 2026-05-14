@@ -27,6 +27,7 @@ struct proceso {
     struct proceso *apant;
 };
 
+void limpiar_pantalla();
 void iniciar_tabla(struct proceso *procesos);
 void dibujar_tabla(struct proceso *procesos);
 void nuevo_proceso_activo(struct proceso *procesos, int tiempo, struct proceso **procesos_activos, int *num_procesos_activados);
@@ -34,9 +35,14 @@ void proceso_Actual(int *num_procesos_activados, struct proceso **procesos_activ
 void resta_rafaga(struct proceso **proceso_actual);
 void salida(struct proceso **procesos_activos, int *num_procesos_activados, int *num_procesos_finalizados);
 void indice_gantt(int *tam_gantt, int **gantt, struct proceso *proceso_actual, struct proceso *procesos);
+void cambio_contexto(struct proceso *proceso_actual, struct proceso *proceso_anterior, struct proceso *base_procesos);
 void imprimir_gantt(int tiempo, int tam_gantt, int *gantt);
 
 int main () {
+    //Para los cambios de contexto.
+    struct proceso *proceso_anterior = NULL;
+    float tiempo_total = 0;
+
     bool continuar = true;
     int tiempo = 0;
     int num_procesos_activados = 0;
@@ -57,16 +63,21 @@ int main () {
     getchar();
 
     while (continuar == true) {
+        limpiar_pantalla();
+        dibujar_tabla(procesos);
         int raf_menor = 10000;
         int num_procesos_finalizados = 0;
         proceso_actual = NULL;
 
         nuevo_proceso_activo(procesos, tiempo, procesos_activos, &num_procesos_activados);
         proceso_Actual(&num_procesos_activados, procesos_activos, &raf_menor, &proceso_actual);
+        cambio_contexto(proceso_actual, proceso_anterior, procesos);
         indice_gantt(&tam_gantt, &gantt, proceso_actual,procesos);
         imprimir_gantt(tiempo, tam_gantt, gantt);
 
         resta_rafaga(&proceso_actual);
+
+        proceso_anterior = proceso_actual;
 
         tiempo++;
 
@@ -82,6 +93,14 @@ int main () {
     printf("\n\nSimulacion finalizada.\n");
     free(gantt);
     return 0;
+}
+
+void limpiar_pantalla() {
+#ifdef _WIN32
+    system("cls");
+#else
+    printf("\033[H\033[J");
+#endif
 }
 
 void iniciar_tabla(struct proceso *procesos) {
@@ -193,4 +212,14 @@ void imprimir_gantt(int tiempo, int tam_gantt, int *gantt) {
         }
     }
     printf("|");
+}
+
+void cambio_contexto(struct proceso *proceso_actual, struct proceso *proceso_anterior, struct proceso *base_procesos) {
+    if (proceso_actual != NULL && proceso_anterior != NULL) {
+        if (proceso_actual != proceso_anterior) {
+            printf("\n[Cambio de contexto: P%d -> P%d]\n", 
+                (int)((proceso_anterior - base_procesos) + 1), 
+                (int)((proceso_actual - base_procesos) + 1));
+        }
+    }
 }
