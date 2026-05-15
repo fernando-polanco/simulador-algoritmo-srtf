@@ -91,10 +91,10 @@ public class Process {
 
     /**
      * Marca el proceso como completado.
-     * <p>Establece el {@code completionTime} (momento del simulador en el que
+     * <p>Establece él {@code completionTime} (momento del simulador en el que
      * el proceso finalizó) y realiza la transición de estado a
      * {@code TERMINATED} usando {@link #setState(ProcessState)}. El metodo
-     * debe invocarse cuando el {@code remainingBurstTime} llega a 0 o menor.</p>
+     * debe invocarse cuando él {@code remainingBurstTime} llega a 0 o menor.</p>
      *
      * @param completionTime instante de tiempo (misma unidad que usa el simulador)
      *                       en el que el proceso finaliza
