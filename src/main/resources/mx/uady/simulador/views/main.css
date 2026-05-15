@@ -1,0 +1,20 @@
+.title-label {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.section-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.button {
+    -fx-background-color: #4f81bd;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.text-area {
+    -fx-control-inner-background: #f4f4f4;
+}
+

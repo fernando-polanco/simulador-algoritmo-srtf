@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="mx.uady.simulador.controllers.MainController"
+            stylesheets="@main.css">
+    <top>
+        <VBox spacing="8" BorderPane.alignment="CENTER">
+            <padding>
+                <Insets top="16" right="16" bottom="8" left="16" />
+            </padding>
+            <Label text="SIMULACION DE LA APLICACION DEL ALGORITMO SRTF" styleClass="title-label" />
+        </VBox>
+    </top>
+    <center>
+        <HBox spacing="16">
+            <padding>
+                <Insets top="8" right="16" bottom="16" left="16" />
+            </padding>
+            <VBox spacing="12" HBox.hgrow="ALWAYS">
+                <Label text="Tabla de procesos" styleClass="section-label" />
+                <TableView fx:id="processTable" prefHeight="300" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="processColumn" text="Proceso" prefWidth="80" />
+                        <TableColumn fx:id="arrivalColumn" text="Llegada (ms)" prefWidth="110" />
+                        <TableColumn fx:id="burstColumn" text="Rafaga (ms)" prefWidth="110" />
+                        <TableColumn fx:id="remainingColumn" text="Restante (ms)" prefWidth="120" />
+                        <TableColumn fx:id="stateColumn" text="Estado" prefWidth="120" />
+                    </columns>
+                </TableView>
+                <Label text="Grafico de Gantt" styleClass="section-label" />
+                <Canvas fx:id="ganttCanvas" width="760" height="140" />
+            </VBox>
+            <VBox spacing="12" prefWidth="300">
+                <Label text="Calculo de los tiempos" styleClass="section-label" />
+                <TextArea fx:id="calculationArea" editable="false" wrapText="true" prefHeight="320" />
+                <Button fx:id="stepButton" text="Paso 1" onAction="#onStepButtonAction" maxWidth="Infinity" />
+            </VBox>
+        </HBox>
+    </center>
+</BorderPane>
+
