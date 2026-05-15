@@ -49,6 +49,7 @@ public class Proceso {
         if (finalizacion == -1){
             throw new IllegalStateException("El proceso aún no ha terminado. ");
         }
+        /// Formula usada por convención
         return finalizacion-llegada-rafaga;
         }
     }

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane prefHeight="673.0" prefWidth="935.0" styleClass="root-container"
+            xmlns="http://javafx.com/javafx/25"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="mx.uady.simulador.Controllers.SimulacionSRTFController">
+
+    <top>
+        <VBox alignment="CENTER" spacing="12">
+            <padding>
+                <Insets bottom="10" left="20" right="20" top="20" />
+            </padding>
+
+            <Label styleClass="title" text="SIMULACIÓN DE LA APLICACIÓN DEL ALGORITMO SRTF">
+            <font>
+               <Font name="Segoe UI Bold" size="19.0" />
+            </font></Label>
+
+            <TableView fx:id="tablaProcesos" prefHeight="175" prefWidth="460">
+                <columns>
+                    <TableColumn fx:id="colProcesoID" prefWidth="303.2000541687012" text="Proceso" />
+
+                    <TableColumn fx:id="colTiempoLlegada" prefWidth="310.39996337890625" text="Tiempo de llegada" />
+
+                    <TableColumn fx:id="colTiempoRafaga" prefWidth="321.60009765625" text="Tiempo de ráfaga" />
+                </columns>
+            </TableView>
+        </VBox>
+    </top>
+
+    <center>
+        <VBox alignment="CENTER" spacing="12">
+            <padding>
+                <Insets bottom="10" left="35" right="35" top="10" />
+            </padding>
+
+            <Label styleClass="section-title" text="Gráfico de Gantt del procesador">
+            <font>
+               <Font name="Segoe UI Bold" size="18.0" />
+            </font></Label>
+
+            <ScrollPane fitToHeight="true" fitToWidth="false" hbarPolicy="AS_NEEDED" prefHeight="186.0" prefWidth="865.0" styleClass="gantt-scroll" vbarPolicy="NEVER">
+
+                <content>
+                    <VBox spacing="4">
+                        <HBox fx:id="hboxGantt" alignment="CENTER_LEFT" spacing="0" styleClass="gantt-box" />
+
+                        <HBox fx:id="hboxTiempo" alignment="CENTER_LEFT" spacing="0" styleClass="time-box" />
+                    </VBox>
+                </content>
+            </ScrollPane>
+
+            <TextArea fx:id="txtCalculos" editable="false" prefHeight="180" prefWidth="900" styleClass="calculation-area" wrapText="true" />
+        </VBox>
+    </center>
+
+    <bottom>
+        <VBox alignment="CENTER" spacing="10">
+            <padding>
+                <Insets bottom="25" left="20" right="20" top="10" />
+            </padding>
+
+            <Button fx:id="btnPaso" onAction="#siguientePaso" styleClass="step-button" text="Paso 1">
+            <font>
+               <Font name="Segoe UI Bold" size="15.0" />
+            </font></Button>
+        </VBox>
+    </bottom>
+
+</BorderPane>

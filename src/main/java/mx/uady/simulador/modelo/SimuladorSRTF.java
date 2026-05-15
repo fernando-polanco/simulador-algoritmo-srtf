@@ -186,10 +186,7 @@ public class SimuladorSRTF {
         }
         ///Si no se cumple nada, simplemente se retorna el tiempo en que termina el proceso actual
         return finActual;
-
     }
-
-
 
     /// Getters
     public List<Proceso> getProcesos() {
