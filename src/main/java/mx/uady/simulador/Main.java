@@ -14,6 +14,8 @@ public class Main extends Application {
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/views/simuladorSRTFView.fxml"));
             Scene scene = new Scene(loader.load());
+            scene.getStylesheets().add(getClass().getResource
+                    ("/styles.css").toExternalForm());
             primaryStage.setTitle("SIMULADOR SRTF");
             primaryStage.setScene(scene);
             primaryStage.setResizable(false);

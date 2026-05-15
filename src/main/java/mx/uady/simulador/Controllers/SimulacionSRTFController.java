@@ -12,6 +12,7 @@ import mx.uady.simulador.modelo.Proceso;
 import mx.uady.simulador.modelo.SegmentoDeGantt;
 import mx.uady.simulador.modelo.SimuladorSRTF;
 
+import javax.print.DocFlavor;
 import java.util.List;
 import java.util.Random;
 
@@ -38,6 +39,20 @@ public class SimulacionSRTFController {
     private Button btnPaso;
 
     private SimuladorSRTF simulador;
+
+    /// Etiquetas especiales para cambio de contexto e IDLE
+    private static final String ETIQUETA_CC  = "CC";
+    private static final String ETIQUETA_IDLE = "IDLE";
+
+    /// Estilos de la hoja css. Cada proceso posee un color distintivo
+    /// 0 escalable pero resuelve el trabajo
+    private static final String[] CLASES_PROCESO = {
+            "gantt-p1",
+            "gantt-p2",
+            "gantt-p3",
+            "gantt-p4",
+            "gantt-p5",
+    };
 
     /// TextBlock para el area de calculo. Se ve mejor y es más facil de modificar que un StringBuilder
     private static final String textoCalculo = """
@@ -118,6 +133,8 @@ public class SimulacionSRTFController {
             bloque.setPrefWidth(ancho);
             bloque.setMinHeight(45);
             bloque.setAlignment(Pos.CENTER);
+            /// Se usa la baase generica de los bloques + el color de cada proceso espcifico
+            bloque.getStyleClass().addAll("gantt-block",resolverClase(segmento));
             hboxGantt.getChildren().add(bloque);
 
         }
@@ -134,10 +151,12 @@ public class SimulacionSRTFController {
             tiempo.setAlignment(Pos.CENTER_LEFT);
             hboxTiempo.getChildren().add(tiempo);
         }
+        /// Etiqueta de tiempo final tiene un estilo propio
         if (!simulador.getSegmentos().isEmpty()){
             SegmentoDeGantt ultimo = simulador.getSegmentos().
                     get(simulador.getSegmentos().size()-1);
             Label fin = new Label(EscalaTiempo.formato(ultimo.getFin()));
+            fin.getStyleClass().add("time-label");
             hboxTiempo.getChildren().add(fin);
         }
 
@@ -177,6 +196,36 @@ public class SimulacionSRTFController {
                 "%.2f",porcentajeFinal));
         formatoTexto.append("%");
         txtCalculos.setText(formatoTexto.toString());
+    }
+
+    /// AÑADIDO FINAL. Ponerle estilos a la UI
+
+    private String resolverClase (SegmentoDeGantt segmento){
+        String etiqueta = segmento.getEtiqueta().trim().toUpperCase();
+        if (etiqueta.contains(ETIQUETA_CC)) return "gantt-cc";
+        if (etiqueta.contains(ETIQUETA_IDLE)) return "gantt-idle";
+        return resolverClaseProceso(segmento.getEtiqueta().trim());
+
+
+    }
+    private String resolverClaseProceso (String idProceso){
+        try {
+            /// Reemplaza todo lo que no sea un digito por un espacio en blanco
+            String digitos = idProceso.replaceAll("[^0-9]", "");
+            if (!digitos.isEmpty()){
+                /// Convertirmos el string a entero y restamos 1 porque es un arreglo
+                int indice = Integer.parseInt(digitos)-1;
+                /// Se comprueba que esté en rango
+                if (indice>=0 && indice <= CLASES_PROCESO.length -1){
+                    return CLASES_PROCESO[indice];
+
+                }
+            }
+        } catch (NumberFormatException e){
+            System.out.println("Error al resolver indices" + e);
+        }
+        /// si falla todo se devuelve el primer color
+        return CLASES_PROCESO[0];
     }
 
 
