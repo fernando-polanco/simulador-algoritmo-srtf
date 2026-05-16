@@ -43,79 +43,59 @@ public class Scheduler {
         firstProcessHasRun = false;
     }
 
-    private void advanceToNextEvent() {
+    public boolean step() {
+        return advanceToNextEvent();
+    }
+
+    private boolean advanceToNextEvent() {
         if (isSimulationFinished()) {
-            return;
+            return false;
         }
 
         while (!isSimulationFinished()) {
-            // actualiza la cola de procesos listos
             moveArrivedProcessesToReadyQueue();
 
-            // caso 1) si no hay proceso ejecutándose en la CPU
             if (currentProcess == null) {
-                // seleccionar el candidato a ejecutar
-                Process candidate = getShortestReminingTimeProcess();
+                Process candidate = getShortestRemainingTimeProcess();
                 if (candidate != null) {
-                    // asigna el proceso a la CPI
                     assignProcessToCpu(candidate);
                     startTime = currentTime;
-                    // evento: entrada a la CPU, salimos del bule
-                    return;
+                    return true;
                 }
-                else {
-                    // no hay procesos listos, avanzar hasta la próxima llegada
-                    int nextArrivalTime = getNextArrivalTime();
-                    if (nextArrivalTime == -1) {
-                        // no hay más procesos listos
-                        return;
-                    }
-                    // registra IDLE
-                    ganttChart.add(new GanttEntry("IDLE", currentTime, nextArrivalTime));
-                    currentTime = nextArrivalTime;
-                    // el siguiente ciclo moverá los procesos que llegan
-                    continue;
+
+                int nextArrivalTime = getNextArrivalTime();
+                if (nextArrivalTime == -1) {
+                    return false;
                 }
+
+                appendGanttSegment("IDLE", currentTime, nextArrivalTime);
+                currentTime = nextArrivalTime;
+                return true;
             }
 
-            // hay un proceso en la CPU
             Process running = currentProcess;
             int remainingTime = running.getRemainingBurstTime();
             int nextArrivalTime = getNextArrivalTime();
 
-            // si no hay mas llegadas o la próxima llegada es después de que el proceso termine
             if (nextArrivalTime == -1 || nextArrivalTime >= currentTime + remainingTime) {
-                // el proceso actual termina sin interrupciones
-                // avanza el tiempo hasta su finalización
                 int finishTime = currentTime + remainingTime;
-                // registra el segmento en el diagrama de Gantt
-                ganttChart.add(new GanttEntry(running.getId(), startTime, finishTime));
-                // actualiza el tiempo actual
+                appendGanttSegment(running.getId(), startTime, finishTime);
                 currentTime = finishTime;
-                // finaliza el proceso
-                currentProcess.finalizeProcess(currentTime);
-                currentProcess.setState(ProcessState.TERMINATED);
+                running.finalizeProcess(currentTime);
                 currentProcess = null;
-
-                // continúa al siguiente ciclo para asignar proceso a la CPU y parar en el siguiente evento
-                continue;
+                return true;
             }
 
-            // hay una llegada antes de que termine el proceso actual
             int timeToNextArrival = nextArrivalTime - currentTime;
             if (timeToNextArrival > 0) {
-                // registra el segmento
-                ganttChart.add(new GanttEntry(running.getId(), startTime, nextArrivalTime));
-                // reduce el tiempo restante del proceso
-                for (int i = 0; i < timeToNextArrival; i++) {
-                    currentProcess.decreaseRemainingBurstTime();
-                }
+                appendGanttSegment(running.getId(), startTime, nextArrivalTime);
+                currentProcess.decreaseRemainingBurstTime(timeToNextArrival);
                 currentTime = nextArrivalTime;
                 startTime = nextArrivalTime;
             }
 
             moveArrivedProcessesToReadyQueue();
-            Process candidate = getShortestReminingTimeProcess();
+            Process candidate = getShortestRemainingTimeProcess();
             if (candidate != null && candidate != currentProcess
                     && candidate.getRemainingBurstTime() < currentProcess.getRemainingBurstTime()) {
 
@@ -126,12 +106,11 @@ public class Scheduler {
 
                 assignProcessToCpu(candidate);
                 startTime = currentTime;
-                // evento: entra un nuevo proceso
-                return;
+                return true;
             }
-            // no hubo preemption, el proceso actual continuo
-            // el bucle continúa para procesar el siguiente evento (llegada o finalización)
         }
+
+        return false;
     }
 
     private void assignProcessToCpu(Process process) {
@@ -142,15 +121,29 @@ public class Scheduler {
         }
         else {
             contextSwitches++;
-            incrementProcesesContextSwitchCount();
+            incrementProcessesContextSwitchCount();
             currentProcess = process;
             currentProcess.setState(ProcessState.RUNNING);
         }
         readyQueue.remove(process);
     }
 
-    private void incrementProcesesContextSwitchCount() {
+    private void incrementProcessesContextSwitchCount() {
         readyQueue.forEach(Process::incrementContextSwitchCount);
+    }
+
+    private void appendGanttSegment(String id, int segmentStart, int segmentEnd) {
+        if (segmentEnd <= segmentStart) {
+            return;
+        }
+        if (!ganttChart.isEmpty()) {
+            GanttEntry last = ganttChart.get(ganttChart.size() - 1);
+            if (last.getId().equals(id) && last.getEndTime() == segmentStart) {
+                ganttChart.set(ganttChart.size() - 1, new GanttEntry(id, last.getStartTime(), segmentEnd));
+                return;
+            }
+        }
+        ganttChart.add(new GanttEntry(id, segmentStart, segmentEnd));
     }
 
     private void moveArrivedProcessesToReadyQueue() {
@@ -165,12 +158,12 @@ public class Scheduler {
         });
     }
 
-    private Process getShortestReminingTimeProcess() {
+    private Process getShortestRemainingTimeProcess() {
         return readyQueue.stream()
                 .min(Comparator.comparingInt(Process::getRemainingBurstTime)
-                        .thenComparingInt(Process::getArrivalTime) // desempate 1
-                        .thenComparing(Process::getId)) // desempate 2
-                .orElse(null); // no hay procesos listos
+                        .thenComparingInt(Process::getArrivalTime)
+                        .thenComparing(Process::getId))
+                .orElse(null);
     }
 
     private int getNextArrivalTime() {

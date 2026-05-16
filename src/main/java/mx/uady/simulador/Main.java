@@ -6,10 +6,12 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
+import java.util.Objects;
+
 public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
-        Parent root = FXMLLoader.load(Main.class.getResource("/mx/uady/simulador/views/SchedulerView.fxml"));
+        Parent root = FXMLLoader.load(Objects.requireNonNull(Main.class.getResource("/mx/uady/simulador/views/SchedulerView.fxml")));
         Scene scene = new Scene(root, 1100, 650);
 
         primaryStage.setTitle("Simulacion SRTF");

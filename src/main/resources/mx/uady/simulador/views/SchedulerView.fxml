@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="mx.uady.simulador.controllers.SchedulerController"
+      spacing="12"
+      alignment="TOP_CENTER"
+      style="-fx-padding: 16;">
+
+    <Label text="SIMULACION DE LA APLICACION DEL ALGORITMO SRTF"
+           style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+
+    <TableView fx:id="processTable" prefHeight="220" prefWidth="1000">
+        <columns>
+            <TableColumn fx:id="idColumn" text="Proceso" prefWidth="90"/>
+            <TableColumn fx:id="arrivalColumn" text="Llegada" prefWidth="90"/>
+            <TableColumn fx:id="burstColumn" text="Rafaga" prefWidth="90"/>
+            <TableColumn fx:id="remainingColumn" text="Restante" prefWidth="90"/>
+            <TableColumn fx:id="stateColumn" text="Estado" prefWidth="120"/>
+            <TableColumn fx:id="contextSwitchColumn" text="CC" prefWidth="60"/>
+            <TableColumn fx:id="completionColumn" text="Final" prefWidth="90"/>
+            <TableColumn fx:id="turnaroundColumn" text="Turnaround" prefWidth="120"/>
+            <TableColumn fx:id="waitingColumn" text="Espera" prefWidth="90"/>
+        </columns>
+    </TableView>
+
+    <ScrollPane fx:id="ganttScroll" fitToWidth="true" prefHeight="140" prefWidth="1000">
+        <content>
+            <HBox fx:id="ganttContainer" spacing="4" alignment="CENTER_LEFT" style="-fx-padding: 8;"/>
+        </content>
+    </ScrollPane>
+
+    <VBox spacing="6" prefWidth="700" style="-fx-background-color: #F2F2F2; -fx-padding: 12; -fx-border-color: #BDBDBD;">
+        <Label text="Calculo de los tiempos" style="-fx-font-weight: bold;"/>
+        <GridPane hgap="12" vgap="6">
+            <Label text="TE total:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+            <Label fx:id="totalWaitingLabel" text="-" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+            <Label text="TE promedio:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+            <Label fx:id="avgWaitingLabel" text="-" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+            <Label text="TTP:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+            <Label fx:id="totalProcessingLabel" text="-" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+
+            <Label text="Porcentaje de TTP que consume el TEP:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+            <Label fx:id="idlePercentLabel" text="-" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+        </GridPane>
+    </VBox>
+
+    <HBox spacing="12" alignment="CENTER">
+        <Button fx:id="stepButton" text="Paso 1" onAction="#handleStep"
+                style="-fx-background-color: #2F80ED; -fx-text-fill: white;"/>
+        <Button fx:id="resetButton" text="Reiniciar" onAction="#handleReset"
+                style="-fx-background-color: #27AE60; -fx-text-fill: white;"/>
+    </HBox>
+</VBox>
+

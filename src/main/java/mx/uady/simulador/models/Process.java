@@ -11,6 +11,8 @@ public class Process {
     private int contextSwitchCount;
     private ProcessState state;
 
+    private static final double CONTEXT_SWITCH_COST = 0.2;
+
     public Process(String id, int arrivalTime, int burstTime) {
         this.id = id;
         this.arrivalTime = arrivalTime;
@@ -27,6 +29,13 @@ public class Process {
         if (remainingBurstTime > 0) {
             remainingBurstTime--;
         }
+    }
+
+    public void decreaseRemainingBurstTime(int delta) {
+        if (delta <= 0) {
+            return;
+        }
+        remainingBurstTime = Math.max(0, remainingBurstTime - delta);
     }
 
     public void incrementContextSwitchCount() {
@@ -55,7 +64,7 @@ public class Process {
 
     private void calculateTimes() {
         this.turnaroundTime = completionTime - arrivalTime;
-        this.waitingTime = turnaroundTime - burstTime + (0.2 * contextSwitchCount);
+        this.waitingTime = turnaroundTime - burstTime + (CONTEXT_SWITCH_COST * contextSwitchCount);
     }
 
     // getters
@@ -79,6 +88,9 @@ public class Process {
     }
     public double getWaitingTime() {
         return waitingTime;
+    }
+    public int getContextSwitchCount() {
+        return contextSwitchCount;
     }
     public ProcessState getState() {
         return state;
