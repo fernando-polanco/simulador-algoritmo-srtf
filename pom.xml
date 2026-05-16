@@ -65,16 +65,6 @@
                     <stripDebug>true</stripDebug>
                     <noManPages>true</noManPages>
                     <noHeaderFiles>true</noHeaderFiles>
-                    <!-- jlink configuration commented out to avoid XML schema validation errors in the editor.
-                         If you need to enable jlink packaging, either update the plugin version or move these
-                         settings to the correct location for your javafx-maven-plugin version.
-
-                    <jlink>
-                        <jlinkZipName>simulador-srtf</jlinkZipName>
-                        <addModules>javafx.controls,javafx.fxml</addModules>
-                        <outputDirectory>${project.build.directory}/image</outputDirectory>
-                    </jlink>
-                    -->
                 </configuration>
                 <executions>
                     <execution>
