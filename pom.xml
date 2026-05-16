@@ -61,7 +61,74 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>mx.uady.simulador.Main</mainClass>
+                    <launcher>simulador-srtf</launcher>
+                    <stripDebug>true</stripDebug>
+                    <noManPages>true</noManPages>
+                    <noHeaderFiles>true</noHeaderFiles>
+                    <!-- jlink configuration commented out to avoid XML schema validation errors in the editor.
+                         If you need to enable jlink packaging, either update the plugin version or move these
+                         settings to the correct location for your javafx-maven-plugin version.
+
+                    <jlink>
+                        <jlinkZipName>simulador-srtf</jlinkZipName>
+                        <addModules>javafx.controls,javafx.fxml</addModules>
+                        <outputDirectory>${project.build.directory}/image</outputDirectory>
+                    </jlink>
+                    -->
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>create-runtime</id>
+                        <goals>
+                            <goal>jlink</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.panteleyev</groupId>
+                <artifactId>jpackage-maven-plugin</artifactId>
+                <version>1.6.0</version>
+                <configuration>
+                    <name>Simulador SRTF</name>
+                    <appVersion>1.0.0</appVersion>
+                    <input>${project.build.directory}/jpackage-input</input>
+                    <mainJar>${project.build.finalName}.jar</mainJar>
+                    <mainClass>mx.uady.simulador.Main</mainClass>
+                    <type>APP_IMAGE</type>
+                    <destination>${project.build.directory}/jpackage-out</destination>
+                    <runtimeImage>${project.build.directory}/image</runtimeImage>
+                    <javaOptions>
+                        <javaOption>-Xmx512m</javaOption>
+                    </javaOptions>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-jar-for-jpackage</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/jpackage-input</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}</directory>
+                                    <includes>
+                                        <include>${project.build.finalName}.jar</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- Source: https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-surefire-plugin -->

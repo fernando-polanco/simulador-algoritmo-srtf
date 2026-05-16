@@ -90,3 +90,19 @@ adicionales ni editar los tiempos de llegada o ráfaga de los procesos.
 un nuevo evento.
 9. El código debe permitir la creación de un archivo totalmente ejecutable, es decir, un archivo que permita ejecutar
 el programa sin necesidad de tener instalado el lenguaje de programación o alguno de sus componentes requeridos en su elaboración.
+
+## Ejecutable (runtime con JavaFX)
+
+Para crear un ejecutable portable (runtime con JavaFX incluido) usa `jlink` mediante Maven.
+
+```bash
+mvn -q clean package
+mvn -q javafx:jlink
+```
+
+El ejecutable queda en `target/simulador-srtf/bin/simulador-srtf`.
+En macOS puedes ejecutarlo asi:
+
+```bash
+./target/simulador-srtf/bin/simulador-srtf
+```
