@@ -8,6 +8,7 @@ public class Process {
     private int completionTime;
     private int turnaroundTime;
     private double waitingTime;
+    private int contextSwitchCount;
     private ProcessState state;
 
     public Process(String id, int arrivalTime, int burstTime) {
@@ -18,6 +19,7 @@ public class Process {
         this.completionTime = -1; // sin asignar
         this.turnaroundTime = -1; // sin asignar
         this.waitingTime = -1; // sin asignar
+        this.contextSwitchCount = 0;
         this.state = ProcessState.NEW;
     }
 
@@ -27,9 +29,14 @@ public class Process {
         }
     }
 
-    public void finalizeProcess(int completionTime, int totalContextSwitches) {
+    public void incrementContextSwitchCount() {
+        contextSwitchCount++;
+    }
+
+    public void finalizeProcess(int completionTime) {
+        this.remainingBurstTime = 0;
         this.completionTime = completionTime;
-        calculateTimes(totalContextSwitches);
+        calculateTimes();
         this.state = ProcessState.TERMINATED;
     }
 
@@ -42,12 +49,13 @@ public class Process {
         this.completionTime = -1;
         this.turnaroundTime = -1;
         this.waitingTime = -1;
+        this.contextSwitchCount = 0;
         this.state = ProcessState.NEW;
     }
 
-    private void calculateTimes(int totalContextSwitches) {
+    private void calculateTimes() {
         this.turnaroundTime = completionTime - arrivalTime;
-        this.waitingTime = turnaroundTime - burstTime + (0.2 * totalContextSwitches);
+        this.waitingTime = turnaroundTime - burstTime + (0.2 * contextSwitchCount);
     }
 
     // getters

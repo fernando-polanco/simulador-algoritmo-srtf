@@ -60,7 +60,7 @@ simulación y será cuando el botón de paso a paso de la simulación cambie su 
 Considerar un mecanismo que permita al usuario terminar la simulación o iniciar una nueva ejecución de la misma.
 6. Cálculos de los tiempos a mostrar al finalizar la simulación:
     - **TE**: Tiempo de espera de cada proceso, que se calcula como el turnaround menos el tiempo de ráfaga más los 
-   cambios de contexto que se hayan realizado a partir del tiempo de llegada del proceso.
+   cambios de contexto globales que se hayan sucedido a partir del tiempo de llegada del proceso.
     - **TEP**: Tiempo de espera promedio, que se calcula como la suma de los tiempos de espera de cada proceso dividida 
    entre el número total de procesos.
     - **TTP**: Tiempo total de procesamiento, que se calcula como el tiempo actual en que se finaliza la ejecución del 
@@ -78,15 +78,15 @@ Considerar un mecanismo que permita al usuario terminar la simulación o iniciar
 
 1. Cada cambio de contexto se realiza en un tiempo de **0.2 milisegundos**.
 2. Los cambios de contexto (CC) no se suman al tiempo actual de la simulación, es decir, el tiempo de CC se considera un 
-tiempo adicional que se suma al TE de cada proceso y al TTP, pero no se suma al tiempo actual de la simulación, por lo 
-que se debe guardar un registro de los CC realizados y en que tiempos se realizaron.
+tiempo adicional que se suma al TE de cada proceso y al TTP, pero no se suma al tiempo actual de la simulación.
 3. A excepción del primer proceso en entrar a la CPU (P1 en este caso), cada proceso que entre a la CPU deberá esperar
    un tiempo de 0.2 milisegundos por el cambio de contexto.
 4. El programa debe trabajar únicamente con los procesos dados en la tabla del problema, no se deben agregar procesos 
 adicionales ni editar los tiempos de llegada o ráfaga de los procesos.
 5. Todos los procesos de llegada y ráfaga se manejarán como enteros y se considerarán en milisegundos.
 6. El programa debe ser desarrollado utilizando el lenguaje de programación Java y JavaFX para la parte gráfica de la simulación.
-7. Cada clic en el botón de control de la simulación debe avanzar al siguiente evento de la simulación, siendo este evento 
-la entrada de un proceso a la CPU (ya sea por preempción o porque la CPU esté libre) o la finalización de un proceso en la CPU.
-8. El código debe permitir la creación de un archivo totalmente ejecutable, es decir, un archivo que permita ejecutar
+7. Cada clic en el botón de control de la simulación debe avanzar al siguiente evento de la simulación.
+8. Un evento de la simulación se define como cualquier cambio en el estado de la CPU, asignar un proceso a la CPU inicia 
+un nuevo evento.
+9. El código debe permitir la creación de un archivo totalmente ejecutable, es decir, un archivo que permita ejecutar
 el programa sin necesidad de tener instalado el lenguaje de programación o alguno de sus componentes requeridos en su elaboración.
