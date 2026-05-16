@@ -5,118 +5,48 @@ import java.util.Comparator;
 import java.util.List;
 
 public class Scheduler {
-    /**
-     * Tiempo de cambio de contexto expresado en décimas de milisegundo (escala x10).
-     * Equivale a 0.2 ms reales. El simulador trabaja internamente en esta escala
-     * para evitar aritmética de punto flotante.
-     */
-    private final static int SWITCH_CONTEXT_TIME = 2; // escalado
     private final List<Process> processes;
     private final List<Process> readyQueue;
-    private final List<GanttEntry> ganttEntries;
-    private Process runningProcess;
+    private final List<GanttEntry> ganttChart;
+    private final List<Integer> contextSwitches;
+    private Process currentProcess;
     private int currentTime;
     private int startTime;
-    private boolean simulationFinished;
     private boolean firstProcessHasRun;
 
     public Scheduler(List<Process> processes) {
         this.processes = processes;
         this.readyQueue = new ArrayList<>();
-        this.ganttEntries = new ArrayList<>();
-        this.runningProcess = null;
+        // guarda los segmentos del diagrama de Gantt
+        this.ganttChart = new ArrayList<>();
+        // guarda los tiempos donde hubo un cambio de contexto (CC)
+        this.contextSwitches = new ArrayList<>();
+        this.currentProcess = null;
         this.currentTime = 0;
-        this.startTime = 0;
-        this.simulationFinished = false;
+        // ayuda a marcar cuando inicio un nuevo segmento del diagrama de Gantt
+        this.startTime = -1;
         this.firstProcessHasRun = false;
     }
 
-    public List<GanttEntry> getGanttEntries() {
-        return ganttEntries;
-    }
-    public int getCurrentTime() {
-        return currentTime;
-    }
-
-    public void executeEvent(){
+    public void advanceToNextEvent() {
         if (isSimulationFinished()) {
             return;
         }
 
-        // estado previo para detectar cambios
-        Process prevRunning = runningProcess;
-        int prevTerminated = (int) processes.stream()
-                .filter(p -> p.getState() == ProcessState.TERMINATED)
-                .count();
-
-        // avanza hasta que ocurra un evento
-        while (true) {
-            executeOneUnit();
-
-            if (runningProcess != prevRunning) {
-                break;
-            }
-
-            int terminatedNow = (int) processes.stream()
-                    .filter(p -> p.getState() == ProcessState.TERMINATED)
-                    .count();
-
-            if  (terminatedNow != prevTerminated) {
-                break;
-            }
-
-            if (isSimulationFinished()) {
-                break;
-            }
-        }
-
     }
 
-    public double calculateAverageWaitingTime() {
-        return processes.stream()
-                .filter(p -> p.getState() == ProcessState.TERMINATED)
-                .mapToInt(Process::calculateWaitingTime)
-                .average()
-                .orElse(0.0);
-    }
-
-    public double calculateCpuIdlePercentage() {
-        if (currentTime <= 0) return 0.0;
-        int idleTime = ganttEntries.stream()
-                .filter(e -> "IDLE".equals(e.getId()) || "CC".equals(e.getId()))
-                .mapToInt(GanttEntry::calculateDuration)
-                .sum();
-        return (idleTime / (double) currentTime) * 100.0;
-    }
-
-    /**
-     * Indica si la simulación ha finalizado.
-     * <p>La bandera {@code simulationFinished} se pone a {@code true} cuando el planificador
-     * determina que no quedan procesos por ejecutar (todos los procesos tienen estado {@code TERMINATED}).</p>
-     * El valor se reinicia a {@code false} al invocar {@link #restart()} para permitir
-     * ejecutar la simulación nuevamente con las mismas instancias de {@code Process}.
-     *
-     * @return {@code true} si la simulación ha terminado, {@code false} en caso contrario
-     */
     public boolean isSimulationFinished() {
-        return simulationFinished;
+        return processes.stream().allMatch(Process::isFinished);
     }
 
-    /**
-     * Reinicia la simulación reutilizando las mismas instancias de {@code Process} y limpiando
-     * las estructuras internas del planificador. Esto permite ejecutar la simulación varias veces
-     * sin necesidad de crear nuevas instancias de {@code Scheduler} o {@code Process}.
-     */
-    public void restart() {
-        // regresa cada proceso a su estado inicial
+    public void resetSimulation() {
         processes.forEach(Process::reset);
-        // limpia estructuras internas
         readyQueue.clear();
-        ganttEntries.clear();
-        // reinicia el estado del planificador
-        runningProcess = null;
+        ganttChart.clear();
+        contextSwitches.clear();
+        currentProcess = null;
         currentTime = 0;
-        simulationFinished = false;
+        startTime = -1;
         firstProcessHasRun = false;
     }
 
@@ -124,138 +54,139 @@ public class Scheduler {
         if (isSimulationFinished()) {
             return;
         }
+        // actualiza la cola de procesos listos
+        moveArrivedProcessesToReadyQueue();
+        // seleccionar el candidato a ejecutar
+        Process candidate = getShortestReminingTimeProcess();
 
-        // encolar llegadas en el tiempo actual
-        enqueueArrivedProcess();
-        //seleccionar candidato a ejecutar
-        Process candidate = findShortestRemainingTimeProcess();
-
-        // si no hay procesos corriendo
-        if (runningProcess == null) {
+        // caso 1) si no hay proceso ejecutándose en la CPU
+        if (currentProcess == null) {
+            // subcaso 1) no hay candidato a ejecutar
             if (candidate == null) {
-                // calcula el tiempo hasta la siguiente llegada
-                // obtiene el siguiente proceso en llegar (arrivalTime > currentTime)
+                // avanza hasta el tiempo hasta el siguiente proceso en llegar
                 int nextArrivalTime = processes.stream()
-                        .filter(p -> p.getState() == ProcessState.NEW && p.getArrivalTime() > currentTime)
+                        .filter(p -> p.getArrivalTime() > currentTime && p.getState() == ProcessState.NEW)
                         .mapToInt(Process::getArrivalTime)
                         .min()
-                        .orElse(-1);
+                        .orElse(-1); // no hay más procesos por llegar
 
-                // no hay más llegadas, termina la simulación
                 if (nextArrivalTime == -1) {
-                    checkAndSetSimulationFinished();
                     return;
                 }
 
                 // registra el tiempo total que la CPU estuvo IDLE
-                GanttEntry newGanttEntry = new GanttEntry("IDLE", currentTime, nextArrivalTime);
-                ganttEntries.add(newGanttEntry);
-
+                ganttChart.add(new GanttEntry("IDLE", currentTime, nextArrivalTime));
                 // avanza el tiempo hasta la siguiente llegada
                 currentTime = nextArrivalTime;
-                // no encolamos aquí, la llegada será manejada en la siguiente invocación de executeOneUnit()
+                // termina de ejecutar esta unidad de tiempo, la siguiente llamada al metodo se encargará de mover el
+                // proceso a la cola de listos
                 return;
             }
+            // subcaso 2) si hay candidato a ejecutar, se asigna a la CPU
             else {
-                // sí hay un candidato a ejecutar
+                // se elimina el proceso a ejecutar de la cola de listos para no ser tomado en cuenta a la hora de
+                // buscar al siguiente candidato
                 readyQueue.remove(candidate);
 
                 if (!firstProcessHasRun) {
                     // se asigna sin CC
-                    runningProcess = candidate;
-                    candidate.setState(ProcessState.RUNNING);
+                    currentProcess = candidate;
+                    currentProcess.setState(ProcessState.RUNNING);
                     firstProcessHasRun = true;
+                } else {
+                    // se asigna con CC
+                    contextSwitches.add(currentTime);
+                    currentProcess = candidate;
+                    currentProcess.setState(ProcessState.RUNNING);
                 }
-                else {
-                    // se asignan con CC
-                    GanttEntry ganttEntry = new GanttEntry("CC", currentTime, currentTime + SWITCH_CONTEXT_TIME);
-                    ganttEntries.add(ganttEntry);
-                    currentTime += SWITCH_CONTEXT_TIME;
-                    runningProcess = candidate;
-                    candidate.setState(ProcessState.RUNNING);
-                }
+                // guarda el tiempo de inicio del nuevo segmento de Gantt
                 startTime = currentTime;
             }
         }
+        // caso 2) hay un proceso en ejecución en la CPU
         else {
-            // hay proceso en ejecución, comprobamos preemption
-            if (candidate != null && candidate != runningProcess
-                    && candidate.getRemainingBurstTime() < runningProcess.getRemainingBurstTime()) {
-                // registrar segmento del proceso interrumpido
-                GanttEntry newGanttEntry = new GanttEntry(runningProcess.getName(), startTime, currentTime);
-                ganttEntries.add(newGanttEntry);
-
-                // mover runningProcess a READY y añadirlo a la cola
-                runningProcess.setState(ProcessState.READY);
-                if (!readyQueue.contains(runningProcess)) {
-                    readyQueue.add(runningProcess);
+            // subcaso 1) hay preemption
+            if (candidate != null && candidate != currentProcess
+                    && candidate.getArrivalTime() < currentProcess.getArrivalTime()) {
+                // registra el segmento del proceso que se interrumpió
+                ganttChart.add(new GanttEntry(currentProcess.getId(), startTime, currentTime));
+                // guarda el tiempo en que ocurrió el CC
+                contextSwitches.add(currentTime);
+                // cambiar currentProcess a READY y moverlo a la cola de listos
+                currentProcess.setState(ProcessState.READY);
+                if (!readyQueue.contains(candidate)) {
+                    readyQueue.add(candidate);
                 }
-
+                // elimina candidate de la cola de listos
                 readyQueue.remove(candidate);
-                // suma el CC al tiempo actual
-                GanttEntry ganttEntry = new GanttEntry("CC", currentTime, currentTime + SWITCH_CONTEXT_TIME);
-                ganttEntries.add(ganttEntry);
-                currentTime += SWITCH_CONTEXT_TIME;
-                runningProcess = candidate;
-                candidate.setState(ProcessState.RUNNING);
+                // asigna candidate a la CPU
+                currentProcess = candidate;
+                currentProcess.setState(ProcessState.RUNNING);
+                // actualiza el tiempo de inicio del nuevo segmento
                 startTime = currentTime;
             }
-        }
 
-        // ejecutar el proceso en la CPU (si hay alguno)
-        if (runningProcess != null) {
-            currentTime++;
-            runningProcess.decreaseRemainingBurstTime();
+            // ejecuta el proceso en la CPU (si aplica)
+            if (currentProcess != null) {
+                // decrementa una unidad de tiempo (1 ms) al proceso ejecutándose en la CPU
+                currentProcess.decreaseRemainingBurstTime();
+                // aumenta una unidad de tiempo (1 ms) al tiempo actual
+                currentTime++;
 
-            // si terminó su ráfaga, marcarlo como completo y registrar su segmento en el diagrama de Gantt
-            if (runningProcess.hasCompletedHisBurstTime()) {
-                runningProcess.markAsComplete(currentTime);
-                GanttEntry newGanttEntry = new GanttEntry(runningProcess.getName(), startTime, currentTime);
-                ganttEntries.add(newGanttEntry);
-                runningProcess = null;
+                if (currentProcess.isFinished()) {
+                    int totalContextSwitches = contextSwitches.stream()
+                            .filter(t -> t >= currentProcess.getArrivalTime() && t < currentTime)
+                            .toArray().length;
+                    currentProcess.finalizeProcess(currentTime, totalContextSwitches);
+                    // registra el segmento
+                    ganttChart.add(new GanttEntry(currentProcess.getId(), startTime, currentTime));
+                    currentProcess = null;
+                    currentTime = startTime;
+                }
             }
         }
-
-        // comprobar si la simulación ha terminado
-        checkAndSetSimulationFinished();
     }
 
-    /**
-     * Mueve todos los procesos recién llegados (arrivalTime == currentTime) a la cola de procesos
-     * listos para ser atendidos por la CPU y cambia su estado a {@code READY}.
-     */
-    private void enqueueArrivedProcess() {
-        processes.forEach(p -> {
-                    if (p.getArrivalTime() <= currentTime && p.getState() == ProcessState.NEW) {
-                        p.setState(ProcessState.READY);
-                        // evita duplicados
-                        if (!readyQueue.contains(p)) {
-                            readyQueue.add(p);
-                        }
-                    }
-                });
+    private void moveArrivedProcessesToReadyQueue() {
+        processes.forEach(process -> {
+            if (process.getArrivalTime() <= currentTime && process.getState() == ProcessState.NEW) {
+                process.setState(ProcessState.READY);
+                // si el proceso no se encuentra ya en la cola de listos
+                if (!readyQueue.contains(process)) {
+                    readyQueue.add(process);
+                }
+            }
+        });
     }
 
-    /**
-     * Selecciona el proceso con menor tiempo de ráfaga restante (Shortest Remaining Time)
-     * de la {@code readyQueue} sin modificar la colección.
-     *
-     * <p>La selección utiliza como criterio principal {@code remainingBurstTime} y,
-     * en caso de empate, utiliza como criterio de desempate {@code arrivalTime}
-     * (se prefiere el proceso que llegó antes).</p>
-     *
-     * @return la referencia al {@code Process} con menor {@code remainingBurstTime}
-     *         (según los criterios descritos), o {@code null} si no hay procesos listos
-     */
-    private Process findShortestRemainingTimeProcess() {
+    private Process getShortestReminingTimeProcess() {
         return readyQueue.stream()
                 .min(Comparator.comparingInt(Process::getRemainingBurstTime)
-                        .thenComparingInt(Process::getArrivalTime))
-                .orElse(null);
+                        .thenComparingInt(Process::getArrivalTime) // desempate 1
+                        .thenComparing(Process::getId)) // desempate 2
+                .orElse(null); // no hay procesos listos
     }
 
-    private void checkAndSetSimulationFinished() {
-        simulationFinished = processes.stream()
-                .allMatch(p -> p.getState() == ProcessState.TERMINATED);
+    // getters
+    public List<Process> getProcesses() {
+        return processes;
+    }
+    public List<Process> getReadyQueue() {
+        return readyQueue;
+    }
+    public List<GanttEntry> getGanttChart() {
+        return ganttChart;
+    }
+    public List<Integer> getContextSwitches() {
+        return contextSwitches;
+    }
+    public Process getCurrentProcess() {
+        return currentProcess;
+    }
+    public int getCurrentTime() {
+        return currentTime;
+    }
+    public int getStartTime() {
+        return startTime;
     }
 }
